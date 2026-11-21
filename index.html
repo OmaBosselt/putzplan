@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Putzplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: eine Spalte; oben "Heute", darunter Woche, Samstagsrotation, Quartal */
+:root{
+  --bg:#f4f6f5; --surface:#ffffff; --ink:#1d2a28; --muted:#5d6e6a; --line:#d9e1de; --accent:#1f6f66; --accent-ink:#ffffff; --done:#8aa39e;
+  --display:"Source Serif 4",Georgia,serif; --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#121917; --surface:#1b2523; --ink:#e6eeec; --muted:#98aaa6; --line:#2d3b38; --accent:#4fb3a6; --accent-ink:#0b1412; --done:#5f7772;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121917; --surface:#1b2523; --ink:#e6eeec; --muted:#98aaa6; --line:#2d3b38; --accent:#4fb3a6; --accent-ink:#0b1412; --done:#5f7772;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.45}
+main{max-width:640px;margin:0 auto;padding:20px 16px 56px;display:flex;flex-direction:column;gap:24px}
+h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance}
+h1{font-size:1.9rem;line-height:1.15}
+h2{font-size:1.25rem}
+.sub{color:var(--muted);margin:4px 0 0;font-size:.95rem}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.card.today{border-color:var(--accent);border-width:2px}
+.head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.meta{color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums}
+.group{display:flex;flex-direction:column;gap:2px}
+.group-label{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}
+.task{display:flex;align-items:flex-start;gap:12px;padding:8px 4px;border-radius:8px;cursor:pointer;min-height:44px}
+.task:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
+.task input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:1px 0 0;border:2px solid var(--muted);border-radius:7px;background:transparent;cursor:pointer;display:grid;place-content:center}
+.task input:checked{background:var(--accent);border-color:var(--accent)}
+.task input:checked::after{content:"";width:6px;height:11px;border:solid var(--accent-ink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.task input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.task input:checked + span{color:var(--done);text-decoration:line-through}
+.free{color:var(--muted);margin:0}
+.bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
+@media (prefers-reduced-motion:reduce){.bar > i{transition:none}}
+details{border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+details > summary{list-style:none;cursor:pointer;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px}
+details > summary::-webkit-details-marker{display:none}
+details > summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:12px}
+details[open] > summary{border-bottom:1px solid var(--line)}
+details .body{padding:8px 12px 14px;display:flex;flex-direction:column;gap:2px}
+.day{display:flex;flex-direction:column}
+.day b{font-family:var(--display);font-weight:600}
+.day small{color:var(--muted)}
+.pill{font-size:.8rem;padding:2px 10px;border-radius:99px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
+.pill.off{background:var(--line);color:var(--muted)}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Putzplan</h1>
+    <p class="sub" id="datum"></p>
+  </header>
+  <section id="heute" aria-label="Heute"></section>
+  <section style="display:flex;flex-direction:column;gap:10px" aria-label="Woche">
+    <h2>Diese Woche</h2>
+    <div id="woche" style="display:flex;flex-direction:column;gap:10px"></div>
+  </section>
+  <section style="display:flex;flex-direction:column;gap:10px" aria-label="Quartal">
+    <h2 id="qtitel"></h2>
+    <div id="quartal"></div>
+  </section>
+  <p class="hint">Häkchen werden auf diesem Gerät gespeichert und gelten pro Tag, Woche bzw. Quartal. Neue Woche, neue leere Liste.</p>
+</main>
+<script>
+const TAGESBASIS = ["Geschirr und Spüle leeren","Sachen zurückräumen","Müll raus, wenn nötig"];
+
+const PLAN = {
+  1:{name:"Montag", fokus:"Bad", min:20, tasks:["Toilette reinigen","Waschbecken und Armaturen","Dusche / Wanne","Spiegel","Boden wischen"]},
+  2:{name:"Dienstag", fokus:"Frei (Sport)", min:0, tasks:[]},
+  3:{name:"Mittwoch", fokus:"Oben: Staub und Boden", min:20, tasks:["Oben: Staub wischen","Oben: Boden saugen","Oben: Boden wischen"]},
+  4:{name:"Donnerstag", fokus:"Oben putzen, unten Staub", min:25, tasks:["Oben: Oberflächen abwischen","Oben: Türgriffe und Lichtschalter","Unten: Staub wischen"]},
+  5:{name:"Freitag", fokus:"Unten putzen", min:25, tasks:["Unten: Oberflächen abwischen","Unten: Türgriffe und Lichtschalter","Unten: Boden saugen","Unten: Boden wischen"]},
+  6:{name:"Samstag", fokus:"Prep, Küche, Wocheneinsatz", min:60, tasks:[]},
+  0:{name:"Sonntag", fokus:"Frei", min:0, tasks:[]}
+};
+
+const KUECHE = ["Prep für die Woche","Herd und Kochfeld","Arbeitsflächen","Spüle","Küchenboden"];
+
+const ROTATION = {
+  1:{titel:"Küchengeräte", tasks:["Backofen reinigen","Mikrowelle reinigen","Kühlschrank innen auswischen, Altes aussortieren","Wasserkocher / Kaffeemaschine entkalken"]},
+  2:{titel:"Fenster", tasks:["Fenster innen putzen","Rahmen und Fensterbänke","Spiegel und Glasflächen"]},
+  3:{titel:"Schlafzimmer", tasks:["Bettwäsche wechseln","Matratze absaugen","Schränke von außen und Regale abstauben"]},
+  4:{titel:"Flur und Details", tasks:["Flur und Eingang gründlich","Lampen und Leuchten abstauben","Heizkörper reinigen","Türen und Zargen abwischen"]}
+};
+
+const QUARTAL = ["Waschmaschine reinigen (Flusensieb, Gummidichtung)","Vorratsschrank und Kühlschrank ausmisten","Vorhänge waschen","Polstermöbel absaugen","Abflüsse reinigen","Hinter und unter Möbeln saugen"];
+
+const MON = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+const pad = n => String(n).padStart(2,"0");
+const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+
+let state = {};
+const KEY = "putzplan-v1";
+try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { state = {}; }
+function save(){
+  try {
+    const cut = new Date(); cut.setDate(cut.getDate()-120);
+    const lim = iso(cut);
+    for (const k of Object.keys(state)) { if (/^\d{4}-/.test(k) && k.slice(0,10) < lim) delete state[k]; }
+    localStorage.setItem(KEY, JSON.stringify(state));
+  } catch(e) {}
+}
+
+const now = new Date();
+const todayIdx = now.getDay();
+const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay()+6)%7));
+function dateOf(dow){ const off = (dow+6)%7; return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+off); }
+function weekOfMonth(d){ return Math.min(4, Math.ceil(d.getDate()/7)); }
+
+function taskRow(key, text){
+  const l = document.createElement("label"); l.className = "task";
+  const i = document.createElement("input"); i.type = "checkbox"; i.id = "c-"+key.replace(/[^a-z0-9]/gi,"_"); i.checked = !!state[key];
+  i.addEventListener("change", () => { if (i.checked) state[key] = 1; else delete state[key]; save(); updateBars(); });
+  const s = document.createElement("span"); s.textContent = text;
+  l.append(i, s); return l;
+}
+function group(label, items){
+  const g = document.createElement("div"); g.className = "group";
+  if (label) { const p = document.createElement("div"); p.className = "group-label"; p.textContent = label; g.append(p); }
+  items.forEach(x => g.append(taskRow(x[0], x[1])));
+  return g;
+}
+function dayGroups(dow){
+  const d = dateOf(dow), ds = iso(d), p = PLAN[dow], out = [];
+  out.push(group("Tagesbasis", TAGESBASIS.map((t,i)=>[ds+"|b"+i, t])));
+  if (dow === 6) {
+    out.push(group("Küche und Prep", KUECHE.map((t,i)=>[ds+"|k"+i, t])));
+    const w = weekOfMonth(d), r = ROTATION[w];
+    out.push(group("Wocheneinsatz "+w+": "+r.titel, r.tasks.map((t,i)=>[ds+"|r"+i, t])));
+  } else if (p.tasks.length) {
+    out.push(group(p.fokus, p.tasks.map((t,i)=>[ds+"|t"+i, t])));
+  } else {
+    const f = document.createElement("p"); f.className = "free"; f.textContent = dow===2 ? "Heute frei, Sport." : "Frei.";
+    out.push(f);
+  }
+  return out;
+}
+function keysOf(dow){
+  const ds = iso(dateOf(dow)), p = PLAN[dow], k = TAGESBASIS.map((t,i)=>ds+"|b"+i);
+  if (dow===6) { KUECHE.forEach((t,i)=>k.push(ds+"|k"+i)); ROTATION[weekOfMonth(dateOf(6))].tasks.forEach((t,i)=>k.push(ds+"|r"+i)); }
+  else p.tasks.forEach((t,i)=>k.push(ds+"|t"+i));
+  return k;
+}
+function bar(){ const b = document.createElement("div"); b.className = "bar"; b.setAttribute("role","presentation"); const i = document.createElement("i"); b.append(i); return b; }
+
+function updateBars(){
+  document.querySelectorAll("[data-bar]").forEach(el => {
+    const keys = el.dataset.bar.split(",");
+    const n = keys.filter(k => state[k]).length;
+    el.querySelector("i").style.width = (keys.length ? 100*n/keys.length : 0)+"%";
+    const m = document.getElementById(el.dataset.meta);
+    if (m) m.textContent = n+" von "+keys.length;
+  });
+}
+
+function render(){
+  document.getElementById("datum").textContent = PLAN[todayIdx].name+", "+now.getDate()+". "+MON[now.getMonth()]+" "+now.getFullYear();
+
+  const h = document.getElementById("heute"); h.textContent = "";
+  const c = document.createElement("div"); c.className = "card today";
+  const hd = document.createElement("div"); hd.className = "head";
+  const t = document.createElement("h2"); t.textContent = "Heute: "+PLAN[todayIdx].fokus;
+  const m = document.createElement("span"); m.className = "meta"; m.id = "m-heute";
+  hd.append(t, m); c.append(hd);
+  const b = bar(); b.dataset.bar = keysOf(todayIdx).join(","); b.dataset.meta = "m-heute"; c.append(b);
+  dayGroups(todayIdx).forEach(x => c.append(x));
+  h.append(c);
+
+  const w = document.getElementById("woche"); w.textContent = "";
+  [1,2,3,4,5,6,0].forEach(dow => {
+    const p = PLAN[dow], d = dateOf(dow);
+    const det = document.createElement("details"); if (dow === todayIdx) det.open = true;
+    const sm = document.createElement("summary");
+    const dv = document.createElement("div"); dv.className = "day";
+    const nm = document.createElement("b"); nm.textContent = p.name+", "+d.getDate()+"."+(d.getMonth()+1)+".";
+    const sb = document.createElement("small"); sb.textContent = p.fokus + (p.min ? " · ca. "+p.min+" Min." : "");
+    dv.append(nm, sb);
+    const pill = document.createElement("span"); pill.className = "pill"+((dow===2||dow===0)?" off":""); pill.id = "m-"+dow;
+    sm.append(dv, pill); det.append(sm);
+    const body = document.createElement("div"); body.className = "body";
+    if (dow!==2 && dow!==0) { const bb = bar(); bb.dataset.bar = keysOf(dow).join(","); bb.dataset.meta = "m-"+dow; body.append(bb); }
+    else pill.textContent = "frei";
+    dayGroups(dow).forEach(x => body.append(x));
+    det.append(body); w.append(det);
+  });
+
+  const q = Math.floor(now.getMonth()/3)+1, qk = now.getFullYear()+"-Q"+q;
+  document.getElementById("qtitel").textContent = "Quartal "+q+"/"+now.getFullYear();
+  const qc = document.getElementById("quartal"); qc.textContent = "";
+  const card = document.createElement("div"); card.className = "card";
+  card.append(group("Einmal pro Quartal", QUARTAL.map((t,i)=>[qk+"|q"+i, t])));
+  qc.append(card);
+  updateBars();
+}
+render();
+</script>
+</body>
+</html>
