@@ -8,20 +8,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* Layout: eine Spalte; oben "Heute", darunter Woche, Samstagsrotation, Quartal */
+/* Layout: eine Spalte; Heute, Einmalig, Wäsche, Wochenaufgaben, Woche, Grundreinigung, Quartal */
 :root{
-  --bg:#f4f6f5; --surface:#ffffff; --ink:#1d2a28; --muted:#5d6e6a; --line:#d9e1de; --accent:#1f6f66; --accent-ink:#ffffff; --done:#8aa39e;
+  --bg:#f4f6f5; --surface:#ffffff; --ink:#1d2a28; --muted:#5d6e6a; --line:#d9e1de; --accent:#1f6f66; --accent-ink:#ffffff; --done:#8aa39e; --warn:#a3441f;
   --display:"Source Serif 4",Georgia,serif; --body:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
   color-scheme:light;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --bg:#121917; --surface:#1b2523; --ink:#e6eeec; --muted:#98aaa6; --line:#2d3b38; --accent:#4fb3a6; --accent-ink:#0b1412; --done:#5f7772;
+    --bg:#121917; --surface:#1b2523; --ink:#e6eeec; --muted:#98aaa6; --line:#2d3b38; --accent:#4fb3a6; --accent-ink:#0b1412; --done:#5f7772; --warn:#e8967a;
     color-scheme:dark;
   }
 }
 :root[data-theme="dark"]{
-  --bg:#121917; --surface:#1b2523; --ink:#e6eeec; --muted:#98aaa6; --line:#2d3b38; --accent:#4fb3a6; --accent-ink:#0b1412; --done:#5f7772;
+  --bg:#121917; --surface:#1b2523; --ink:#e6eeec; --muted:#98aaa6; --line:#2d3b38; --accent:#4fb3a6; --accent-ink:#0b1412; --done:#5f7772; --warn:#e8967a;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -32,6 +32,7 @@ h1,h2,h3{font-family:var(--display);font-weight:600;margin:0;text-wrap:balance}
 h1{font-size:1.9rem;line-height:1.15}
 h2{font-size:1.25rem}
 .sub{color:var(--muted);margin:4px 0 0;font-size:.95rem}
+section{display:flex;flex-direction:column;gap:10px}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px}
 .card.today{border-color:var(--accent);border-width:2px}
 .head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
@@ -40,11 +41,14 @@ h2{font-size:1.25rem}
 .group-label{font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:6px 0 2px}
 .task{display:flex;align-items:flex-start;gap:12px;padding:8px 4px;border-radius:8px;cursor:pointer;min-height:44px}
 .task:hover{background:color-mix(in srgb,var(--accent) 8%,transparent)}
-.task input{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:1px 0 0;border:2px solid var(--muted);border-radius:7px;background:transparent;cursor:pointer;display:grid;place-content:center}
-.task input:checked{background:var(--accent);border-color:var(--accent)}
-.task input:checked::after{content:"";width:6px;height:11px;border:solid var(--accent-ink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
-.task input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
-.task input:checked + span{color:var(--done);text-decoration:line-through}
+.task input[type=checkbox]{appearance:none;-webkit-appearance:none;flex:none;width:24px;height:24px;margin:1px 0 0;border:2px solid var(--muted);border-radius:7px;background:transparent;cursor:pointer;display:grid;place-content:center}
+.task input[type=checkbox]:checked{background:var(--accent);border-color:var(--accent)}
+.task input[type=checkbox]:checked::after{content:"";width:6px;height:11px;border:solid var(--accent-ink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.task input[type=checkbox]:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.task input:checked + .txt{color:var(--done);text-decoration:line-through}
+.txt{flex:1;min-width:0}
+.txt small{display:block;color:var(--muted);font-size:.85rem;text-decoration:none}
+.txt small.late{color:var(--warn);font-weight:600}
 .free{color:var(--muted);margin:0}
 .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
 .bar > i{display:block;height:100%;background:var(--accent);width:0;transition:width .2s}
@@ -61,6 +65,14 @@ details .body{padding:8px 12px 14px;display:flex;flex-direction:column;gap:2px}
 .pill{font-size:.8rem;padding:2px 10px;border-radius:99px;background:var(--accent);color:var(--accent-ink);white-space:nowrap}
 .pill.off{background:var(--line);color:var(--muted)}
 .hint{font-size:.85rem;color:var(--muted);margin:0}
+.btn{font:inherit;font-size:.95rem;padding:10px 14px;min-height:44px;border-radius:10px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.small{padding:4px 10px;min-height:36px;font-size:.85rem}
+.btn:focus-visible,.addrow input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1;min-width:0;font:inherit;padding:10px 12px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.row{display:flex;align-items:center;gap:8px}
+.row .task{flex:1}
 </style>
 </head>
 <body>
@@ -70,15 +82,13 @@ details .body{padding:8px 12px 14px;display:flex;flex-direction:column;gap:2px}
     <p class="sub" id="datum"></p>
   </header>
   <section id="heute" aria-label="Heute"></section>
-  <section style="display:flex;flex-direction:column;gap:10px" aria-label="Woche">
-    <h2>Diese Woche</h2>
-    <div id="woche" style="display:flex;flex-direction:column;gap:10px"></div>
-  </section>
-  <section style="display:flex;flex-direction:column;gap:10px" aria-label="Quartal">
-    <h2 id="qtitel"></h2>
-    <div id="quartal"></div>
-  </section>
-  <p class="hint">Häkchen werden auf diesem Gerät gespeichert und gelten pro Tag, Woche bzw. Quartal. Neue Woche, neue leere Liste.</p>
+  <section aria-label="Einmalig und jährlich"><h2>Einmalig und jährlich</h2><div id="once"></div></section>
+  <section aria-label="Wäsche"><h2>Wäsche</h2><div id="wash"></div></section>
+  <section aria-label="Wochenaufgaben"><h2>Diese Woche, jederzeit</h2><div id="weekly"></div></section>
+  <section aria-label="Woche"><h2>Wochenplan</h2><div id="woche" style="display:flex;flex-direction:column;gap:10px"></div></section>
+  <section aria-label="Grundreinigung"><h2>Grundreinigung alle 8 Wochen</h2><div id="rooms"></div></section>
+  <section aria-label="Quartal"><h2 id="qtitel"></h2><div id="quartal"></div></section>
+  <p class="hint">Häkchen und Listen werden nur auf diesem Gerät gespeichert. Tages-, Wochen- und Quartalshäkchen beginnen automatisch neu.</p>
 </main>
 <script>
 const TAGESBASIS = ["Geschirr und Spüle leeren","Sachen zurückräumen","Müll raus, wenn nötig"];
@@ -92,76 +102,76 @@ const PLAN = {
   6:{name:"Samstag", fokus:"Prep, Küche, Wocheneinsatz", min:60, tasks:[]},
   0:{name:"Sonntag", fokus:"Frei", min:0, tasks:[]}
 };
-
 const KUECHE = ["Prep für die Woche","Herd und Kochfeld","Arbeitsflächen","Spüle","Küchenboden"];
-
 const ROTATION = {
   1:{titel:"Küchengeräte", tasks:["Backofen reinigen","Mikrowelle reinigen","Kühlschrank innen auswischen, Altes aussortieren","Wasserkocher / Kaffeemaschine entkalken"]},
   2:{titel:"Fenster", tasks:["Fenster innen putzen","Rahmen und Fensterbänke","Spiegel und Glasflächen"]},
   3:{titel:"Schlafzimmer", tasks:["Bettwäsche wechseln","Matratze absaugen","Schränke von außen und Regale abstauben"]},
-  4:{titel:"Flur und Details", tasks:["Flur und Eingang gründlich","Lampen und Leuchten abstauben","Heizkörper reinigen","Türen und Zargen abwischen"]}
+  4:{titel:"Flur und Details", tasks:["Lampen und Leuchten abstauben","Heizkörper reinigen","Türen und Zargen abwischen"]}
 };
-
 const QUARTAL = ["Waschmaschine reinigen (Flusensieb, Gummidichtung)","Vorratsschrank und Kühlschrank ausmisten","Vorhänge waschen","Polstermöbel absaugen","Abflüsse reinigen","Hinter und unter Möbeln saugen"];
+const WEEKLY = [["w-speicher","Speicher: ein Teil entrümpeln (Kartons zerreißen, Kleinteile entsorgen)"],["w-schuessel0","Katzenschüsseln frisch machen (1 von 2)"],["w-schuessel1","Katzenschüsseln frisch machen (2 von 2)"]];
+const ROOMS = ["Katzenzimmer","Ostseezimmer","Bügelzimmer","Wohnzimmer","Bad","Küche","Hobbyzimmer","Schlafzimmer","Vorrat","Flur (mit Hausausgang)","Treppe"];
+const INTERVAL_DAYS = 56;
+const PLANNED = {"2026-11-17":{rooms:["Katzenzimmer","Ostseezimmer","Bügelzimmer"],wash:true}};
+const ONCE_SEED = ["VDS-Artikel","WLAN-Turm aufbauen","WLAN-Turm drucken"];
 
 const MON = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
 const pad = n => String(n).padStart(2,"0");
 const iso = d => d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+const parseIso = s => { const p = s.split("-"); return new Date(+p[0], +p[1]-1, +p[2]); };
+const addDays = (d,n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+const fmt = d => d.getDate()+"."+(d.getMonth()+1)+".";
+const dayDiff = (a,b) => Math.round((a - b)/86400000);
+
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const todayIso = iso(today);
+const todayIdx = now.getDay();
+const monday = addDays(today, -((now.getDay()+6)%7));
+const mondayIso = iso(monday);
+function dateOf(dow){ return addDays(monday, (dow+6)%7); }
+function weekOfMonth(d){ return Math.min(4, Math.ceil(d.getDate()/7)); }
 
 let state = {};
-const KEY = "putzplan-v1";
-try { state = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e) { state = {}; }
+const KEY = "putzplan-v2";
+try { state = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem("putzplan-v1") || "{}") || {}; } catch(e) { state = {}; }
+if (!Array.isArray(state.once)) state.once = ONCE_SEED.map(t => ({t:t, d:0}));
+if (!Array.isArray(state.wash)) state.wash = [];
+state.wash = state.wash.filter(w => !(w.i && dayDiff(today, parseIso(w.d)) > 7));
 function save(){
   try {
-    const cut = new Date(); cut.setDate(cut.getDate()-120);
-    const lim = iso(cut);
+    const lim = iso(addDays(today,-120));
     for (const k of Object.keys(state)) { if (/^\d{4}-/.test(k) && k.slice(0,10) < lim) delete state[k]; }
     localStorage.setItem(KEY, JSON.stringify(state));
   } catch(e) {}
 }
+save();
 
-const now = new Date();
-const todayIdx = now.getDay();
-const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay()+6)%7));
-function dateOf(dow){ const off = (dow+6)%7; return new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+off); }
-function weekOfMonth(d){ return Math.min(4, Math.ceil(d.getDate()/7)); }
+function mk(tag, cls, text){ const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function boxId(k){ return "c-"+String(k).replace(/[^a-z0-9]/gi,"_"); }
 
 function taskRow(key, text){
-  const l = document.createElement("label"); l.className = "task";
-  const i = document.createElement("input"); i.type = "checkbox"; i.id = "c-"+key.replace(/[^a-z0-9]/gi,"_"); i.checked = !!state[key];
+  const l = mk("label","task");
+  const i = mk("input"); i.type = "checkbox"; i.id = boxId(key); i.checked = !!state[key];
   i.addEventListener("change", () => { if (i.checked) state[key] = 1; else delete state[key]; save(); updateBars(); });
-  const s = document.createElement("span"); s.textContent = text;
-  l.append(i, s); return l;
+  l.append(i, mk("span","txt",text)); return l;
+}
+function customRow(id, checked, text, sub, subClass, onChange){
+  const l = mk("label","task");
+  const i = mk("input"); i.type = "checkbox"; i.id = boxId(id); i.checked = checked;
+  i.addEventListener("change", () => onChange(i.checked));
+  const t = mk("span","txt",text);
+  if (sub) t.append(mk("small", subClass||"", sub));
+  l.append(i, t); return l;
 }
 function group(label, items){
-  const g = document.createElement("div"); g.className = "group";
-  if (label) { const p = document.createElement("div"); p.className = "group-label"; p.textContent = label; g.append(p); }
+  const g = mk("div","group");
+  if (label) g.append(mk("div","group-label",label));
   items.forEach(x => g.append(taskRow(x[0], x[1])));
   return g;
 }
-function dayGroups(dow){
-  const d = dateOf(dow), ds = iso(d), p = PLAN[dow], out = [];
-  out.push(group("Tagesbasis", TAGESBASIS.map((t,i)=>[ds+"|b"+i, t])));
-  if (dow === 6) {
-    out.push(group("Küche und Prep", KUECHE.map((t,i)=>[ds+"|k"+i, t])));
-    const w = weekOfMonth(d), r = ROTATION[w];
-    out.push(group("Wocheneinsatz "+w+": "+r.titel, r.tasks.map((t,i)=>[ds+"|r"+i, t])));
-  } else if (p.tasks.length) {
-    out.push(group(p.fokus, p.tasks.map((t,i)=>[ds+"|t"+i, t])));
-  } else {
-    const f = document.createElement("p"); f.className = "free"; f.textContent = dow===2 ? "Heute frei, Sport." : "Frei.";
-    out.push(f);
-  }
-  return out;
-}
-function keysOf(dow){
-  const ds = iso(dateOf(dow)), p = PLAN[dow], k = TAGESBASIS.map((t,i)=>ds+"|b"+i);
-  if (dow===6) { KUECHE.forEach((t,i)=>k.push(ds+"|k"+i)); ROTATION[weekOfMonth(dateOf(6))].tasks.forEach((t,i)=>k.push(ds+"|r"+i)); }
-  else p.tasks.forEach((t,i)=>k.push(ds+"|t"+i));
-  return k;
-}
-function bar(){ const b = document.createElement("div"); b.className = "bar"; b.setAttribute("role","presentation"); const i = document.createElement("i"); b.append(i); return b; }
-
+function bar(){ const b = mk("div","bar"); b.setAttribute("role","presentation"); b.append(mk("i")); return b; }
 function updateBars(){
   document.querySelectorAll("[data-bar]").forEach(el => {
     const keys = el.dataset.bar.split(",");
@@ -172,46 +182,191 @@ function updateBars(){
   });
 }
 
-function render(){
-  document.getElementById("datum").textContent = PLAN[todayIdx].name+", "+now.getDate()+". "+MON[now.getMonth()]+" "+now.getFullYear();
+function dayGroups(dow){
+  const d = dateOf(dow), ds = iso(d), p = PLAN[dow], out = [];
+  out.push(group("Tagesbasis", TAGESBASIS.map((t,i)=>[ds+"|b"+i, t])));
+  if (dow === 6) {
+    out.push(group("Küche und Prep", KUECHE.map((t,i)=>[ds+"|k"+i, t])));
+    const w = weekOfMonth(d), r = ROTATION[w];
+    out.push(group("Wocheneinsatz "+w+": "+r.titel, r.tasks.map((t,i)=>[ds+"|r"+i, t])));
+  } else if (p.tasks.length) {
+    out.push(group(p.fokus, p.tasks.map((t,i)=>[ds+"|t"+i, t])));
+  } else {
+    out.push(mk("p","free", dow===2 ? "Heute frei, Sport." : "Frei."));
+  }
+  return out;
+}
+function keysOf(dow){
+  const ds = iso(dateOf(dow)), p = PLAN[dow], k = TAGESBASIS.map((t,i)=>ds+"|b"+i);
+  if (dow===6) { KUECHE.forEach((t,i)=>k.push(ds+"|k"+i)); ROTATION[weekOfMonth(dateOf(6))].tasks.forEach((t,i)=>k.push(ds+"|r"+i)); }
+  else p.tasks.forEach((t,i)=>k.push(ds+"|t"+i));
+  return k;
+}
 
+/* Grundreinigung */
+function roomLast(n){ return state["room|"+n] || ""; }
+function roomDue(n){ const l = roomLast(n); return l ? addDays(parseIso(l), INTERVAL_DAYS) : null; }
+function setRoom(n, on){
+  if (on) { state["prev|"+n] = roomLast(n); state["room|"+n] = todayIso; }
+  else { const p = state["prev|"+n]; if (p) state["room|"+n] = p; else delete state["room|"+n]; delete state["prev|"+n]; }
+  save(); renderRooms(); renderHeute();
+}
+function roomStatus(n){
+  const l = roomLast(n), due = roomDue(n);
+  if (!l) return {text:"Noch nicht erfasst, fällig", late:true};
+  if (l === todayIso) return {text:"Heute erledigt, nächste Runde ab "+fmt(due), late:false};
+  const diff = dayDiff(due, today);
+  if (diff < 0) return {text:"Überfällig seit "+(-diff)+" Tagen (zuletzt "+fmt(parseIso(l))+")", late:true};
+  if (diff === 0) return {text:"Heute fällig (zuletzt "+fmt(parseIso(l))+")", late:true};
+  return {text:"Fällig am "+fmt(due)+", in "+diff+" Tagen", late:false};
+}
+function roomRow(n){
+  const s = roomStatus(n);
+  return customRow("room-"+n, roomLast(n) === todayIso, n, s.text, s.late ? "late" : "", on => setRoom(n, on));
+}
+function renderRooms(){
+  const box = document.getElementById("rooms"); box.textContent = "";
+  const card = mk("div","card");
+  const sorted = ROOMS.slice().sort((a,b) => {
+    const da = roomDue(a), db = roomDue(b);
+    const ka = da ? da.getTime() : -1, kb = db ? db.getTime() : -1;
+    return ka - kb;
+  });
+  const g = mk("div","group"); sorted.forEach(n => g.append(roomRow(n))); card.append(g);
+  card.append(mk("p","hint","Haken setzen, wenn die Grundreinigung des Raums erledigt ist. Der Raum rutscht dann 8 Wochen nach hinten."));
+  box.append(card);
+}
+
+/* Wäsche */
+function addWash(id){ state.wash.push({id:id, d:todayIso, i:0}); save(); }
+function renderWash(){
+  const box = document.getElementById("wash"); box.textContent = "";
+  const card = mk("div","card");
+  const btn = mk("button","btn","Maschine gewaschen"); btn.type = "button";
+  btn.addEventListener("click", () => { addWash("m"+Date.now()); renderWash(); renderHeute(); });
+  card.append(btn);
+  const list = state.wash.slice().reverse();
+  if (!list.length) card.append(mk("p","free","Keine Wäsche offen."));
+  else {
+    const g = mk("div","group");
+    list.forEach(w => {
+      const row = mk("div","row");
+      row.append(customRow("wash-"+w.id, !!w.i, "Wäsche vom "+fmt(parseIso(w.d))+", gebügelt", "", "", on => { w.i = on ? 1 : 0; save(); }));
+      const del = mk("button","btn ghost small","Entfernen"); del.type = "button"; del.setAttribute("aria-label","Wäsche vom "+fmt(parseIso(w.d))+" entfernen");
+      del.addEventListener("click", () => { state.wash = state.wash.filter(x => x !== w); delete state[todayIso+"|wash"]; save(); renderWash(); renderHeute(); });
+      row.append(del); g.append(row);
+    });
+    card.append(g);
+  }
+  card.append(mk("p","hint","Nach jeder Maschine tippen. Bügeln erscheint als Haken pro Wäsche und entfällt über Entfernen."));
+  box.append(card);
+}
+
+/* Einmalig und jährlich */
+function blackWeek(y){
+  const first = ((5 - new Date(y,10,1).getDay() + 7) % 7) + 1;
+  const bf = new Date(y, 10, first+21);
+  return {bf:bf, start:addDays(bf,-4)};
+}
+function renderOnce(){
+  const box = document.getElementById("once"); box.textContent = "";
+  const card = mk("div","card");
+  const bw = blackWeek(today.getFullYear());
+  if (today >= addDays(bw.start,-28) && today <= bw.bf) {
+    const k = "cal|"+today.getFullYear();
+    const g = mk("div","group");
+    g.append(mk("div","group-label","Jährlich"));
+    g.append(taskRow(k, "Kalender fertig machen, vor der Black Week (ab "+fmt(bw.start)+")"));
+    card.append(g);
+  }
+  const g2 = mk("div","group");
+  g2.append(mk("div","group-label","Einmalig"));
+  state.once.forEach(o => {
+    const row = mk("div","row");
+    row.append(customRow("once-"+o.t, !!o.d, o.t, "", "", on => { o.d = on ? 1 : 0; save(); }));
+    const del = mk("button","btn ghost small","Löschen"); del.type = "button"; del.setAttribute("aria-label", o.t+" löschen");
+    del.addEventListener("click", () => { state.once = state.once.filter(x => x !== o); save(); renderOnce(); });
+    row.append(del); g2.append(row);
+  });
+  if (!state.once.length) g2.append(mk("p","free","Nichts offen."));
+  card.append(g2);
+  const form = mk("form","addrow");
+  const inp = mk("input"); inp.type = "text"; inp.id = "neu"; inp.placeholder = "Neue Aufgabe"; inp.setAttribute("aria-label","Neue Aufgabe");
+  const add = mk("button","btn","Hinzufügen"); add.type = "submit";
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const t = inp.value.trim(); if (!t) return;
+    state.once.push({t:t, d:0}); save(); renderOnce();
+  });
+  form.append(inp, add); card.append(form);
+  box.append(card);
+}
+
+/* Wochenaufgaben */
+function renderWeekly(){
+  const box = document.getElementById("weekly"); box.textContent = "";
+  const card = mk("div","card");
+  card.append(group("", WEEKLY.map(w => [mondayIso+"|"+w[0], w[1]])));
+  box.append(card);
+}
+
+/* Heute */
+function renderHeute(){
   const h = document.getElementById("heute"); h.textContent = "";
-  const c = document.createElement("div"); c.className = "card today";
-  const hd = document.createElement("div"); hd.className = "head";
-  const t = document.createElement("h2"); t.textContent = "Heute: "+PLAN[todayIdx].fokus;
-  const m = document.createElement("span"); m.className = "meta"; m.id = "m-heute";
-  hd.append(t, m); c.append(hd);
+  const c = mk("div","card today");
+  const hd = mk("div","head");
+  hd.append(mk("h2","", "Heute: "+PLAN[todayIdx].fokus));
+  const m = mk("span","meta"); m.id = "m-heute"; hd.append(m); c.append(hd);
   const b = bar(); b.dataset.bar = keysOf(todayIdx).join(","); b.dataset.meta = "m-heute"; c.append(b);
   dayGroups(todayIdx).forEach(x => c.append(x));
-  h.append(c);
+  const pl = PLANNED[todayIso];
+  if (pl) {
+    const g = mk("div","group"); g.append(mk("div","group-label","Zusätzlich heute"));
+    pl.rooms.forEach(n => g.append(customRow("heute-room-"+n, roomLast(n) === todayIso, n+" aufräumen, Grundreinigung", "", "", on => setRoom(n, on))));
+    if (pl.wash) {
+      const has = state.wash.some(w => w.id === "h"+todayIso);
+      g.append(customRow("heute-wash", has, "Maschine Wäsche", "", "", on => {
+        state.wash = state.wash.filter(w => w.id !== "h"+todayIso);
+        if (on) addWash("h"+todayIso);
+        save(); renderWash(); renderHeute();
+      }));
+    }
+    c.append(g);
+  }
+  h.append(c); updateBars();
+}
 
+/* Woche */
+function renderWeek(){
   const w = document.getElementById("woche"); w.textContent = "";
   [1,2,3,4,5,6,0].forEach(dow => {
     const p = PLAN[dow], d = dateOf(dow);
-    const det = document.createElement("details"); if (dow === todayIdx) det.open = true;
-    const sm = document.createElement("summary");
-    const dv = document.createElement("div"); dv.className = "day";
-    const nm = document.createElement("b"); nm.textContent = p.name+", "+d.getDate()+"."+(d.getMonth()+1)+".";
-    const sb = document.createElement("small"); sb.textContent = p.fokus + (p.min ? " · ca. "+p.min+" Min." : "");
-    dv.append(nm, sb);
-    const pill = document.createElement("span"); pill.className = "pill"+((dow===2||dow===0)?" off":""); pill.id = "m-"+dow;
+    const det = mk("details"); if (dow === todayIdx) det.open = true;
+    const sm = mk("summary");
+    const dv = mk("div","day");
+    dv.append(mk("b","", p.name+", "+d.getDate()+"."+(d.getMonth()+1)+"."), mk("small","", p.fokus + (p.min ? " · ca. "+p.min+" Min." : "")));
+    const pill = mk("span","pill"+((dow===2||dow===0)?" off":"")); pill.id = "m-"+dow;
     sm.append(dv, pill); det.append(sm);
-    const body = document.createElement("div"); body.className = "body";
+    const body = mk("div","body");
     if (dow!==2 && dow!==0) { const bb = bar(); bb.dataset.bar = keysOf(dow).join(","); bb.dataset.meta = "m-"+dow; body.append(bb); }
     else pill.textContent = "frei";
     dayGroups(dow).forEach(x => body.append(x));
     det.append(body); w.append(det);
   });
+  updateBars();
+}
 
+function renderQuartal(){
   const q = Math.floor(now.getMonth()/3)+1, qk = now.getFullYear()+"-Q"+q;
   document.getElementById("qtitel").textContent = "Quartal "+q+"/"+now.getFullYear();
   const qc = document.getElementById("quartal"); qc.textContent = "";
-  const card = document.createElement("div"); card.className = "card";
+  const card = mk("div","card");
   card.append(group("Einmal pro Quartal", QUARTAL.map((t,i)=>[qk+"|q"+i, t])));
   qc.append(card);
-  updateBars();
 }
-render();
+
+document.getElementById("datum").textContent = PLAN[todayIdx].name+", "+now.getDate()+". "+MON[now.getMonth()]+" "+now.getFullYear();
+renderHeute(); renderOnce(); renderWash(); renderWeekly(); renderWeek(); renderRooms(); renderQuartal();
 </script>
 </body>
 </html>
